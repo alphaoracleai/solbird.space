@@ -190,18 +190,18 @@ async function fetchSolPrice() {
   }
 }
 
-const sobInfo = {
-  name: "SolanaBird",
-  symbol: "SOB",
-  totalSupply: 1000000,
-};
+// const sobInfo = {
+//   name: "SolanaBird",
+//   symbol: "SOB",
+//   totalSupply: 1000000,
+// };
 
-document.getElementById("sobInfo").innerText =
-  `${sobInfo.name} (${sobInfo.symbol}) | Supply: ${sobInfo.totalSupply.toLocaleString()}`;
+// document.getElementById("sobInfo").innerText =
+//   `${sobInfo.name} (${sobInfo.symbol}) | Supply: ${sobInfo.totalSupply.toLocaleString()}`;
 
-document.getElementById("buyButton").addEventListener("click", () => {
-  window.open("https://pump.fun/trade/SOB", "_blank");
-});
+// document.getElementById("buyButton").addEventListener("click", () => {
+//   window.open("https://pump.fun/trade/SOB", "_blank");
+// });
 fetchSolPrice();
 setInterval(fetchSolPrice, 30000); // every 30 seconds
 loop();
