@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SolanaBird - Matrix Dark Theme with SOL Price</title>
+<style>
+  body {
+    margin: 0;
+    background: black;
+    font-family: monospace;
+    color: #00ff00;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #infoPanel {
+    width: 800px;
+    padding: 10px;
+    text-align: left;
+    color: #00ff00;
+  }
+
+  .token-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    margin-bottom: 5px;
+    align-items: center;
+  }
+
+  #gameCanvas {
+    border: 2px solid #00ff00;
+    margin-top: 10px;
+    background: black;
+  }
+
+  #buyButton {
+    background: #00ff00;
+    color: black;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  #buyButton:hover {
+    background: #00aa00;
+  }
+</style>
+</head>
+<body>
+
+<div id="infoPanel">
+  <div class="token-info">
+    <span id="solPrice">SOL: $...</span>
+  <!--  <span id="sobInfo">SolanaBird (SOB) | Supply: 1,000,000</span>
+    <button id="buyButton">Buy $SOB</button> -->
+  </div>
+</div>
+
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const matrixChars = "SOLANAPUMPFUN";
+const fontSize = 20;
+const columns = Math.floor(canvas.width / fontSize);
+const drops = Array(columns).fill(0);
+
+function drawMatrix() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#00ff00";
+  ctx.font = `${fontSize}px monospace`;
+
+  for (let i = 0; i < drops.length; i++) {
+    const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+    drops[i]++;
+    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+  }
+}
+
+// ---------- Game Variables ----------
+let frames = 0;
+const gravity = 0.15;
+const jump = 4.5;
+let score = 0;
+
+const bird = {
+  x: 120,
+  y: 250,
+  r: 20,
+  velocity: 0,
+  draw() {
+    ctx.fillStyle = "#ffff00";
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ff9900";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  },
+  update() {
+    this.velocity += gravity;
+    this.y += this.velocity;
+    if (this.y + this.r > canvas.height) resetGame();
+    if (this.y - this.r < 0) this.y = this.r;
+  },
+  flap() { this.velocity = -jump; }
+};
+
+const pipes = [];
+const pipeWidth = 80;
+const pipeGap = 220;
+const pipeSpeed = 2;
+
+function drawPipes() {
+  pipes.forEach(pipe => {
+    ctx.fillStyle = "#00ff00";
+    ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+    ctx.fillRect(pipe.x, pipe.top + pipeGap, pipeWidth, canvas.height - pipe.top - pipeGap);
+  });
+}
+
+function updatePipes() {
+  if (frames % 120 === 0) {
+    const top = Math.random() * (canvas.height - pipeGap - 150) + 50;
+    pipes.push({ x: canvas.width, top });
+  }
+
+  pipes.forEach(pipe => {
+    pipe.x -= pipeSpeed;
+    if (
+      bird.x + bird.r > pipe.x &&
+      bird.x - bird.r < pipe.x + pipeWidth &&
+      (bird.y - bird.r < pipe.top || bird.y + bird.r > pipe.top + pipeGap)
+    ) resetGame();
+
+    if (!pipe.passed && pipe.x + pipeWidth < bird.x - bird.r) {
+      score++;
+      pipe.passed = true;
+    }
+  });
+
+  if (pipes.length && pipes[0].x + pipeWidth < 0) pipes.shift();
+}
+
+// ---------- Game UI ----------
+function drawScore() {
+  ctx.fillStyle = "#00ff00";
+  ctx.font = "24px monospace";
+  ctx.fillText(`Score: ${score}`, 20, 40);
+}
+
+// ---------- Game Loop ----------
+function loop() {
+  drawMatrix();
+  bird.update();
+  updatePipes();
+  bird.draw();
+  drawPipes();
+  drawScore();
+  frames++;
+  requestAnimationFrame(loop);
+}
+
+function resetGame() {
+  bird.y = 250;
+  bird.velocity = 0;
+  pipes.length = 0;
+  score = 0;
+  frames = 0;
+}
+
+document.addEventListener("keydown", e => { if (e.code === "Space") bird.flap(); });
+canvas.addEventListener("click", () => bird.flap());
+
+async function fetchSolPrice() {
+  try {
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd");
+    const data = await res.json();
+    document.getElementById("solPrice").innerText = `SOL: $${data.solana.usd.toFixed(2)}`;
+  } catch(e) {
+    console.error("Error fetching SOL price:", e);
+  }
+}
+
+const sobInfo = {
+  name: "SolanaBird",
+  symbol: "SOB",
+  totalSupply: 1000000,
+};
+
+document.getElementById("sobInfo").innerText =
+  `${sobInfo.name} (${sobInfo.symbol}) | Supply: ${sobInfo.totalSupply.toLocaleString()}`;
+
+document.getElementById("buyButton").addEventListener("click", () => {
+  window.open("https://pump.fun/trade/SOB", "_blank");
+});
+fetchSolPrice();
+setInterval(fetchSolPrice, 30000); // every 30 seconds
+loop();
+</script>
+</body>
+</html>
